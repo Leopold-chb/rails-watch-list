@@ -11,6 +11,46 @@
   </head>
 
   <body>
-    <%= yield %>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-4">
+      <div class="container">
+        <%= link_to root_path, class: "navbar-brand d-flex align-items-center" do %>
+          <i class="fas fa-film me-2"></i>
+          <strong>RailsWatchList</strong>
+        <% end %>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <%= link_to lists_path, class: "nav-link" do %>
+                <i class="fas fa-list me-1"></i> Mes listes
+              <% end %>
+            </li>
+            <li class="nav-item">
+              <%= link_to new_list_path, class: "nav-link" do %>
+                <i class="fas fa-plus-circle me-1"></i> Nouvelle liste
+              <% end %>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="min-vh-100 bg-light">
+      <% if notice %>
+        <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+          <i class="fas fa-check-circle me-2"></i><%= notice %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      <% end %>
+      <% if alert %>
+        <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+          <i class="fas fa-exclamation-circle me-2"></i><%= alert %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      <% end %>
+      <%= yield %>
+    </div>
   </body>
 </html>

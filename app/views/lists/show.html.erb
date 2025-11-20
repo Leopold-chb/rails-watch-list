@@ -1,0 +1,320 @@
+<div class="container mt-4 mb-5">
+  <div class="lists-container">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+      <div>
+        <h1 class="mb-2"><i class="fas fa-list-ul"></i> <%= @list.name %></h1>
+        <p class="mb-0 opacity-75">
+          <i class="fas fa-film me-1"></i>
+          <%= pluralize(@list.bookmarks.count, 'film') %> dans cette liste
+        </p>
+      </div>
+      <%= link_to lists_path, class: "btn btn-light btn-lg mt-3 mt-md-0" do %>
+        <i class="fas fa-arrow-left me-2"></i>Retour
+      <% end %>
+    </div>
+  </div>
+
+  <div class="form-card mb-4">
+    <h3 class="mb-4">
+      <i class="fas fa-plus-circle text-primary me-2"></i>
+      Ajouter un film
+      <small class="text-muted d-block mt-2" style="font-size: 0.9rem; font-weight: 400;">
+        <i class="fas fa-info-circle me-1"></i>
+        Choisissez parmi <%= pluralize(@movies.count, 'film disponible') %>
+      </small>
+    </h3>
+    <%= simple_form_for [@list, @bookmark] do |f| %>
+      <div class="row g-3">
+        <div class="col-md-5">
+          <%= f.association :movie, collection: @movies.order(:title), prompt: "🎬 Choisir un film parmi #{@movies.count} disponibles", label: "Film", input_html: { class: "form-select form-select-lg" } %>
+        </div>
+        <div class="col-md-5">
+          <%= f.input :comment, label: "Commentaire", placeholder: "Ajouter un commentaire (min. 6 caractères)", input_html: { class: "form-control form-control-lg" } %>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <%= f.submit "Ajouter", class: "btn btn-primary btn-lg w-100" %>
+        </div>
+      </div>
+      <% if @bookmark.errors.any? %>
+        <div class="alert alert-danger mt-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>Erreurs :</strong>
+          <ul class="mb-0 mt-2">
+            <% @bookmark.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if @list.bookmarks.empty? %>
+    <div class="empty-state">
+      <i class="fas fa-film"></i>
+      <h3 class="mt-3">Cette liste est vide</h3>
+      <p class="text-muted mb-0">Ajoutez des films pour commencer à remplir votre liste !</p>
+    </div>
+  <% else %>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+      <h2 class="mb-0">
+        <i class="fas fa-film text-primary me-2"></i>
+        Films dans cette liste
+        <span class="badge bg-primary ms-2"><%= @list.bookmarks.count %></span>
+      </h2>
+      <% trailers_count = @list.bookmarks.joins(:movie).where.not(movies: { trailer_key: nil }).count %>
+      <% if trailers_count > 0 %>
+        <span class="badge bg-success mt-2 mt-md-0" style="font-size: 0.9rem;">
+          <i class="fas fa-play-circle me-1"></i>
+          <%= pluralize(trailers_count, 'bande-annonce disponible') %>
+        </span>
+      <% end %>
+    </div>
+    <div class="row g-4">
+      <% @list.bookmarks.each do |bookmark| %>
+        <div class="col-md-4 col-sm-6">
+          <div class="movie-card card h-100 shadow-sm">
+            <% if bookmark.movie.poster_url.present? %>
+              <div class="position-relative" style="height: 450px; overflow: hidden;">
+                <%= image_tag bookmark.movie.poster_url, class: "card-img-top w-100 h-100", alt: bookmark.movie.title, style: "object-fit: cover;" %>
+                <div class="position-absolute top-0 end-0 m-2 d-flex flex-column gap-2">
+                  <span class="badge-rating badge bg-warning text-dark">
+                    <i class="fas fa-star"></i> <%= bookmark.movie.rating %>
+                  </span>
+                  <% if bookmark.movie.trailer_key.present? %>
+                    <span class="badge bg-danger" style="font-size: 0.75rem; padding: 0.4rem 0.6rem;">
+                      <i class="fas fa-play-circle"></i> Bande-annonce
+                    </span>
+                  <% end %>
+                </div>
+                <% if bookmark.movie.trailer_key.present? %>
+                  <div class="position-absolute top-50 start-50 translate-middle trailer-overlay">
+                    <button type="button" class="btn btn-danger btn-lg rounded-circle trailer-btn" onclick="openTrailerModal('<%= bookmark.movie.id %>')" style="width: 80px; height: 80px; box-shadow: 0 8px 25px rgba(220, 53, 69, 0.5); border: 3px solid white; cursor: pointer;">
+                      <i class="fas fa-play" style="font-size: 1.8rem; margin-left: 4px;"></i>
+                    </button>
+                    <div class="position-absolute top-100 start-50 translate-middle-x mt-2 text-white text-center" style="white-space: nowrap; text-shadow: 0 3px 15px rgba(0,0,0,0.8); font-weight: 700; font-size: 0.9rem; letter-spacing: 0.5px; background: rgba(220, 53, 69, 0.95); padding: 0.4rem 0.8rem; border-radius: 20px; border: 2px solid rgba(255, 255, 255, 0.3);">
+                      <i class="fas fa-play-circle me-1"></i>Bande-annonce
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="bg-secondary d-flex align-items-center justify-content-center" style="height: 450px;">
+                <i class="fas fa-image fa-3x text-white-50"></i>
+              </div>
+            <% end %>
+            <div class="card-body d-flex flex-column p-4">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="card-title mb-0 flex-grow-1"><%= bookmark.movie.title %></h5>
+                <% if bookmark.movie.trailer_key.present? %>
+                  <span class="badge bg-success ms-2" style="font-size: 0.7rem;">
+                    <i class="fas fa-video"></i>
+                  </span>
+                <% end %>
+              </div>
+              <p class="card-text text-muted small mb-3 flex-grow-1">
+                <%= truncate(bookmark.movie.overview, length: 120) %>
+              </p>
+              <% if bookmark.comment.present? %>
+                <div class="alert alert-info mb-3">
+                  <i class="fas fa-comment me-2"></i>
+                  <em>"<%= bookmark.comment %>"</em>
+                </div>
+              <% end %>
+              <div class="mt-auto d-flex gap-2">
+                <% if bookmark.movie.trailer_key.present? %>
+                  <button type="button" class="btn btn-primary flex-grow-1" onclick="openTrailerModal('<%= bookmark.movie.id %>')">
+                    <i class="fas fa-play-circle me-2"></i>Bande-annonce
+                  </button>
+                <% end %>
+                <%= link_to bookmark_path(bookmark), data: { turbo_method: :delete, turbo_confirm: "Êtes-vous sûr de vouloir retirer ce film de la liste ?" }, class: "btn btn-outline-danger #{bookmark.movie.trailer_key.present? ? 'flex-grow-1' : 'w-100'}" do %>
+                  <i class="fas fa-trash me-2"></i>Retirer
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  // Supprimer les erreurs CORS de YouTube de la console (optionnel)
+  // Ces erreurs sont normales et n'affectent pas le fonctionnement de la vidéo
+  const originalError = console.error;
+  console.error = function(...args) {
+    if (args[0] && typeof args[0] === 'string' &&
+        (args[0].includes('youtube.com/api/stats') ||
+         args[0].includes('youtubei/v1/log_event') ||
+         args[0].includes('access control checks'))) {
+      // Ignorer silencieusement les erreurs CORS de YouTube
+      return;
+    }
+    originalError.apply(console, args);
+  };
+
+  // Fonction simple pour ouvrir le modal de bande-annonce
+  function openTrailerModal(movieId) {
+    try {
+      const modalId = 'trailerModal' + movieId;
+      const modalElement = document.getElementById(modalId);
+
+      if (!modalElement) {
+        console.error('Modal not found:', modalId);
+        alert('Erreur : Le modal n\'a pas été trouvé');
+        return;
+      }
+
+      // Afficher le modal avec animation
+      modalElement.style.display = 'block';
+      modalElement.style.opacity = '0';
+      modalElement.classList.add('show');
+      document.body.classList.add('modal-open');
+      document.body.style.overflow = 'hidden';
+
+      // Animer l'apparition du modal
+      setTimeout(function() {
+        modalElement.style.opacity = '1';
+        modalElement.style.transition = 'opacity 0.3s ease';
+      }, 10);
+
+      // Ajouter le backdrop avec animation
+      let backdrop = document.getElementById('trailerBackdrop');
+      if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.id = 'trailerBackdrop';
+        backdrop.className = 'modal-backdrop fade show';
+        backdrop.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 1040; width: 100vw; height: 100vh; background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.9) 100%); opacity: 0; transition: opacity 0.3s ease;';
+        document.body.appendChild(backdrop);
+
+        // Animer l'apparition du backdrop
+        setTimeout(function() {
+          backdrop.style.opacity = '1';
+        }, 10);
+
+        // Fermer en cliquant sur le backdrop
+        backdrop.addEventListener('click', function() {
+          closeTrailerModal(movieId);
+        });
+      }
+
+      // Fermer avec Escape
+      const escapeHandler = function(e) {
+        if (e.key === 'Escape') {
+          closeTrailerModal(movieId);
+          document.removeEventListener('keydown', escapeHandler);
+        }
+      };
+      document.addEventListener('keydown', escapeHandler);
+
+    } catch (error) {
+      console.error('Error opening modal:', error);
+      alert('Erreur lors de l\'ouverture de la bande-annonce');
+    }
+  }
+
+  // Fonction pour fermer le modal
+  function closeTrailerModal(movieId) {
+    try {
+      const modalId = 'trailerModal' + movieId;
+      const modalElement = document.getElementById(modalId);
+
+      if (modalElement) {
+        // Animer la fermeture
+        modalElement.style.opacity = '0';
+        modalElement.style.transition = 'opacity 0.3s ease';
+
+        const backdrop = document.getElementById('trailerBackdrop');
+        if (backdrop) {
+          backdrop.style.opacity = '0';
+        }
+
+        // Arrêter la vidéo immédiatement
+        const iframe = modalElement.querySelector('iframe');
+        if (iframe && iframe.src) {
+          const currentSrc = iframe.src;
+          iframe.src = '';
+          // Remettre l'URL pour la prochaine fois
+          setTimeout(function() {
+            iframe.src = currentSrc;
+          }, 200);
+        }
+
+        // Fermer après l'animation
+        setTimeout(function() {
+          modalElement.style.display = 'none';
+          modalElement.classList.remove('show');
+          document.body.classList.remove('modal-open');
+          document.body.style.overflow = '';
+
+          if (backdrop) {
+            backdrop.remove();
+          }
+        }, 300);
+      }
+    } catch (error) {
+      console.error('Error closing modal:', error);
+    }
+  }
+
+  // Fermer avec le bouton X
+  document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('btn-close') || e.target.closest('.btn-close')) {
+        const modal = e.target.closest('.modal');
+        if (modal && modal.id.startsWith('trailerModal')) {
+          const movieId = modal.id.replace('trailerModal', '');
+          closeTrailerModal(movieId);
+        }
+      }
+    });
+  });
+</script>
+
+<!-- Modals pour les bandes-annonces -->
+<% @list.bookmarks.each do |bookmark| %>
+  <% if bookmark.movie.trailer_key.present? %>
+    <div class="modal fade" id="trailerModal<%= bookmark.movie.id %>" tabindex="-1" aria-labelledby="trailerModalLabel<%= bookmark.movie.id %>" aria-hidden="true" style="display: none; z-index: 1055;">
+      <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width: 1000px; margin: 1.75rem auto; padding: 0 1rem;">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title" id="trailerModalLabel<%= bookmark.movie.id %>">
+              <i class="fas fa-film"></i>
+              <span style="margin-left: 0.75rem;"><%= bookmark.movie.title %></span>
+              <small class="d-block mt-1" style="font-size: 0.85rem; opacity: 0.8; font-weight: 400;">Bande-annonce</small>
+            </h5>
+            <button type="button" class="btn-close btn-close-white" onclick="closeTrailerModal('<%= bookmark.movie.id %>')" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-0">
+            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #000;">
+              <iframe
+                id="trailerIframe<%= bookmark.movie.id %>"
+                src="https://www.youtube.com/embed/<%= bookmark.movie.trailer_key %>?rel=0&modestbranding=1&autoplay=1&enablejsapi=1&origin=<%= request.base_url %>&playsinline=1"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                frameborder="0"
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;">
+              </iframe>
+            </div>
+            <div class="p-3" style="background: rgba(0, 0, 0, 0.3); border-top: 1px solid rgba(255, 255, 255, 0.1);">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <span class="badge bg-warning text-dark me-2">
+                    <i class="fas fa-star"></i> <%= bookmark.movie.rating %>/10
+                  </span>
+                  <span class="text-white-50 small">
+                    <i class="fas fa-clock me-1"></i>Bande-annonce YouTube
+                  </span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-light" onclick="closeTrailerModal('<%= bookmark.movie.id %>')">
+                  <i class="fas fa-times me-1"></i>Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+<% end %>
